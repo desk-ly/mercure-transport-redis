@@ -1,0 +1,55 @@
+# Binaries and build output
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/dist/
+/bin/
+
+# Test and profiling artifacts
+*.test
+*.out
+coverage.*
+cover.*
+*.prof
+*.pprof
+__debug_bin*
+
+# Go workspace files (machine-local, must not be committed)
+go.work
+go.work.sum
+
+# Go module vendor directory (this module does not vendor)
+/vendor/
+
+# Environment and secrets
+.env
+.env.*
+!.env.dist
+*.pem
+*.key
+*.crt
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Local AI/agent tooling state
+.claude/
+.conductor/
+.codex/
+.cursor/
+.cursorrules
+.windsurf/
+.gemini/
+.aider*
+.mcp.json
+
+# OS
+.DS_Store
+Thumbs.db
