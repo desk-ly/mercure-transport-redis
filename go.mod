@@ -3,7 +3,7 @@ module github.com/desk-ly/mercure-transport-redis
 go 1.26
 
 require (
-	github.com/alicebob/miniredis/v2 v2.37.0
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/caddyserver/caddy/v2 v2.11.4
 	github.com/dunglas/mercure v0.22.0
 	github.com/dunglas/mercure/caddy v0.22.0
