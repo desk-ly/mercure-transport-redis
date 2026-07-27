@@ -5,15 +5,11 @@ A [Redis](https://redis.io) transport for the [Mercure](https://mercure.rocks) h
 
 The open-source Mercure hub ships single-process transports (`local`, `bolt`), so a horizontally
 scaled hub cannot deliver an update published on one instance to subscribers connected to another.
-This module fixes that. Redis Streams hold the event history, and Redis Pub/Sub fans out to the
-other instances.
+This module fixes that. Redis Streams hold the event history, Redis Pub/Sub fans out to the other
+instances, and a UUID → stream-ID index keeps `Last-Event-ID` replay O(1).
 
-- Durable, size-capped event history in a Redis Stream
-- O(1) `Last-Event-ID` replay via a UUID → stream-ID index (never linear-scans)
-- Gap recovery after a Pub/Sub disconnect
-- `history_limit` bounds the work a client can trigger per reconnect
-
-Requires Go 1.26+, Redis 5.0+, Mercure 0.22 / Caddy 2.11.
+Requires Redis 5.0 or newer, for Redis Streams. Supported Go, Caddy, and Mercure versions are the
+ones declared in [`go.mod`](./go.mod). Pre-1.0, so the configuration surface may still change.
 
 ## Install
 
@@ -54,15 +50,12 @@ localhost {
 | `size` | `0` | Max stream entries, enforced by a background `XTRIM` every 10s. **`0` means no trimming, so the stream grows without bound.** Set this. |
 | `history_limit` | `1000` | Max entries read per SSE history replay. `0` disables replay, so subscribers fast-forward to live. |
 
-### Sizing
+Size the stream to cover your longest expected client disconnect at peak event rate. There is no TTL
+and no eviction fallback, so `size` is the only bound on Redis memory. `Last-Event-ID` is
+client-controlled, so `history_limit` caps what a single reconnect can cost. Set it to `0` if your
+clients re-sync through your own API on connect.
 
-Pick a value that covers your longest expected client disconnect at your peak event rate. There is no
-TTL and no eviction fallback, so `size` is the only bound on Redis memory.
-
-`Last-Event-ID` is client-controlled, so `history_limit` caps what a single reconnect can cost. Set it
-to `0` if your clients re-sync through your own API on connect, which makes reconnects constant-time.
-
-### Security
+## Security
 
 The transport trusts its Redis. Anything that can write to `<stream>:pubsub` can inject updates
 without a publisher JWT, and anything that can read the stream sees every update in plain text.
@@ -84,19 +77,14 @@ Run Redis with AUTH/ACLs and TLS, and do not share the instance with untrusted w
 
 ## Development
 
-```bash
-make test
-```
+`make test` runs the suite in Docker, so no local Go toolchain is required. Without Docker,
+`go test -race -count=1 ./...` does the same. Tests run against
+[miniredis](https://github.com/alicebob/miniredis), so no Redis instance is needed.
 
-Runs in Docker, so no local Go toolchain is required. Without Docker, `go test -race -count=1 ./...`
-does the same. Tests run against [miniredis](https://github.com/alicebob/miniredis), so no Redis
-instance is needed.
-
-## Status
-
-Developed at [desk.ly](https://desk.ly) and published under AGPL-3.0. It is covered by an extensive
-test suite but is not yet running in production, so treat the configuration surface as unstable.
-Issues and pull requests are welcome, but we cannot commit to a support or release schedule.
+We built this at [desk.ly](https://desk.ly) and share it under AGPL-3.0 so that anyone running the hub
+has the full source. It is maintained around our own needs rather than as a community project, so we
+don't take external contributions or offer support. You are free to fork it and take it wherever you
+need.
 
 ## License
 
