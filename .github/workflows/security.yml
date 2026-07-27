@@ -25,3 +25,42 @@ jobs:
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...
+
+  trivy:
+    name: trivy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Mirrors the builder stage of webapp-base, so the scan below sees the same
+      # dependency set that consumers link into their FrankenPHP binary.
+      - name: Build FrankenPHP with this transport
+        run: |
+          docker build -f - -o type=local,dest=binary . <<'EOF'
+          FROM dunglas/frankenphp:1.12-builder-php8.5-alpine AS builder
+
+          COPY --from=caddy:builder /usr/bin/xcaddy /usr/bin/xcaddy
+          COPY . /transport
+
+          RUN CGO_ENABLED=1 \
+              XCADDY_GO_BUILD_FLAGS="-ldflags='-w -s' -tags=nobadger,nomysql,nopgx" \
+              CGO_CFLAGS=$(php-config --includes) \
+              CGO_LDFLAGS="$(php-config --ldflags) $(php-config --libs)" \
+              xcaddy build \
+                  --output /frankenphp \
+                  --with github.com/dunglas/frankenphp=./ \
+                  --with github.com/dunglas/frankenphp/caddy=./caddy/ \
+                  --with github.com/dunglas/mercure/caddy \
+                  --with github.com/desk-ly/mercure-transport-redis=/transport
+
+          FROM scratch
+          COPY --from=builder /frankenphp /frankenphp
+          EOF
+
+      # Reports Go dependencies of the whole binary, including those coming from
+      # FrankenPHP, Caddy and Mercure, which govulncheck above does not cover.
+      # Runs in the checkout so that .trivyignore applies.
+      - name: Scan the binary
+        run: |
+          docker run --rm -v "$PWD":/repo -w /repo aquasec/trivy:latest \
+            rootfs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress binary
