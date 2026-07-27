@@ -1,0 +1,4 @@
+# kin-openapi fail-open authentication bypass. Linked into the binary through the
+# Caddy dependency graph, but govulncheck -mode=binary finds no reachable symbol of
+# it, and this module does not require it. Drop this line once Caddy ships v0.144.0.
+GHSA-r277-6w6q-xmqw
