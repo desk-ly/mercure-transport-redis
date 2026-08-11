@@ -9,7 +9,8 @@ This module fixes that. Redis Streams hold the event history, Redis Pub/Sub fans
 instances, and a UUID → stream-ID index keeps `Last-Event-ID` replay O(1).
 
 Requires Redis 5.0 or newer, for Redis Streams. Supported Go, Caddy, and Mercure versions are the
-ones declared in [`go.mod`](./go.mod). Pre-1.0, so the configuration surface may still change.
+ones declared in [`go.mod`](./go.mod). The configuration surface is stable as of 1.0.0 and follows
+[semantic versioning](https://semver.org), so breaking changes wait for a major release.
 
 ## Install
 
