@@ -37,7 +37,7 @@ jobs:
       - name: Build FrankenPHP with this transport
         run: |
           docker build -f - -o type=local,dest=binary . <<'EOF'
-          FROM dunglas/frankenphp:1.12-builder-php8.5-alpine AS builder
+          FROM dunglas/frankenphp:1.12.7-builder-php8.5.9-alpine AS builder
 
           COPY --from=caddy:builder /usr/bin/xcaddy /usr/bin/xcaddy
           COPY . /transport
