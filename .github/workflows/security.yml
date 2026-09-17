@@ -50,7 +50,7 @@ jobs:
                   --output /frankenphp \
                   --with github.com/dunglas/frankenphp=./ \
                   --with github.com/dunglas/frankenphp/caddy=./caddy/ \
-                  --with github.com/dunglas/mercure/caddy \
+                  --with github.com/dunglas/mercure/caddy@v0.24.2 \
                   --with github.com/desk-ly/mercure-transport-redis=/transport
 
           FROM scratch
