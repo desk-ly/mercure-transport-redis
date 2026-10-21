@@ -42,7 +42,7 @@ jobs:
           COPY --from=caddy:builder /usr/bin/xcaddy /usr/bin/xcaddy
           COPY . /transport
 
-          ENV GOTOOLCHAIN=go1.26.9+auto
+          ENV GOTOOLCHAIN=go1.26.10+auto
 
           RUN CGO_ENABLED=1 \
               XCADDY_GO_BUILD_FLAGS="-ldflags='-w -s' -tags=nobadger,nomysql,nopgx" \
