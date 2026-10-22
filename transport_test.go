@@ -4,10 +4,13 @@
 package redistransport
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
@@ -513,6 +516,72 @@ func TestFetchLastEventID_EmptyUpdateID(t *testing.T) {
 
 	// Returns the empty ID from the Update, which the transport does not treat as an error.
 	assert.Equal(t, "", transport.fetchLastEventID())
+}
+
+func newTestHubServer(t *testing.T, transport *RedisTransport) *httptest.Server {
+	t.Helper()
+
+	hub, err := mercure.NewHub(context.Background(), mercure.WithAnonymous(), mercure.WithTransport(transport))
+	require.NoError(t, err)
+
+	server := httptest.NewServer(hub)
+	t.Cleanup(func() {
+		// Close would wait forever on a handler stuck without HistoryDispatched.
+		if !t.Failed() {
+			server.Close()
+		}
+	})
+
+	return server
+}
+
+func subscribeWithLastEventID(t *testing.T, server *httptest.Server, lastEventID string) *http.Response {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL+"/.well-known/mercure?match=/test/topic", nil)
+	require.NoError(t, err)
+	request.Header.Set("Last-Event-ID", lastEventID)
+
+	response, err := http.DefaultClient.Do(request)
+	require.NoError(t, err, "the hub must send headers instead of waiting for the history dispatch")
+	t.Cleanup(func() { response.Body.Close() })
+
+	return response
+}
+
+func TestAddSubscriber_EmptyLastEventIDDoesNotBlockSubscribe(t *testing.T) {
+	t.Parallel()
+
+	transport, _, _ := newTestTransport(t)
+	seedStream(t, transport, 1)
+
+	response := subscribeWithLastEventID(t, newTestHubServer(t, transport), "")
+
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, mercure.EarliestLastEventID, response.Header.Get("Mercure-Last-Event-ID"))
+}
+
+func TestAddSubscriber_ReplaysHistoryAfterLastEventID(t *testing.T) {
+	t.Parallel()
+
+	transport, _, _ := newTestTransport(t)
+	updates := seedStream(t, transport, 2)
+
+	response := subscribeWithLastEventID(t, newTestHubServer(t, transport), updates[0].ID)
+
+	scanner := bufio.NewScanner(response.Body)
+	for scanner.Scan() {
+		require.NotEqual(t, "id: "+updates[0].ID, scanner.Text(), "the anchor itself must not be replayed")
+
+		if scanner.Text() == "id: "+updates[1].ID {
+			return
+		}
+	}
+
+	t.Fatalf("event after the anchor was not replayed: %v", scanner.Err())
 }
 
 func TestGetSubscribers_EmptyTransport(t *testing.T) {

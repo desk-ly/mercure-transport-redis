@@ -1,4 +1,4 @@
-GO_IMAGE ?= golang:1.26
+GO_IMAGE ?= golang:1.27
 
 .PHONY: test
 
