@@ -35,8 +35,14 @@ localhost {
                 history_limit 1000
             }
 
-            publisher_jwt {$MERCURE_PUBLISHER_JWT_KEY}
-            subscriber_jwt {$MERCURE_SUBSCRIBER_JWT_KEY}
+            issuer https://example.com {
+                publisher {
+                    jwt {$MERCURE_PUBLISHER_JWT_KEY}
+                }
+                subscriber {
+                    jwt {$MERCURE_SUBSCRIBER_JWT_KEY}
+                }
+            }
         }
 
         respond 404
@@ -69,6 +75,7 @@ Run Redis with AUTH/ACLs and TLS, and do not share the instance with untrusted w
 
 - All topics share one stream, and cross-instance replay filters locally rather than at the stream
   level.
+- Named hubs on the same `stream` share updates and history. Give each hub its own `stream`.
 - `history_limit` bounds the client-facing path only. Internal gap recovery after a Pub/Sub outage may
   dispatch up to `size` events at once. The anchor is server-controlled, so this is not
   client-triggerable.

@@ -28,7 +28,13 @@ type Redis struct {
 	HistoryLimit *int64 `json:"history_limit,omitempty"` // nil = default, 0 = replay disabled
 
 	transport    *RedisTransport
-	transportKey string
+	transportKey redisTransportKey
+}
+
+// Hub name as Mercure requires; the full config so a reload applies changes.
+type redisTransportKey struct {
+	hub, url, stream   string
+	size, historyLimit int64
 }
 
 func (Redis) CaddyModule() caddy.ModuleInfo {
@@ -43,12 +49,13 @@ func (r *Redis) GetTransport() mercure.Transport { //nolint:ireturn
 }
 
 func (r *Redis) Provision(ctx caddy.Context) error {
-	r.transportKey = "redis:" + r.URL + ":" + r.Stream
-
 	historyLimit := defaultHistoryLimit
 	if r.HistoryLimit != nil {
 		historyLimit = *r.HistoryLimit
 	}
+
+	hubName, _ := ctx.Value(mercurecaddy.HubNameContextKey).(string)
+	r.transportKey = redisTransportKey{hub: hubName, url: r.URL, stream: r.Stream, size: r.Size, historyLimit: historyLimit}
 
 	destructor, _, err := mercurecaddy.TransportUsagePool.LoadOrNew(r.transportKey, func() (caddy.Destructor, error) {
 		transport, err := NewRedisTransport(

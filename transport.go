@@ -463,7 +463,8 @@ func (t *RedisTransport) AddSubscriber(ctx context.Context, subscriber *mercure.
 	default:
 	}
 
-	if subscriber.RequestLastEventID != "" {
+	// Also true for an empty Last-Event-ID, which the hub still waits on.
+	if subscriber.RequestLastEventIDSet {
 		if err := t.dispatchHistory(ctx, subscriber); err != nil {
 			return err
 		}
@@ -509,6 +510,12 @@ func (t *RedisTransport) historyReplayCursor(ctx context.Context, requestedID st
 // would read the whole stream on every reconnect. Exceeding the budget (or an
 // unanchorable Last-Event-ID) fast-forwards the subscriber to live instead.
 func (t *RedisTransport) dispatchHistory(ctx context.Context, subscriber *mercure.LocalSubscriber) error {
+	if subscriber.RequestLastEventID == "" {
+		subscriber.HistoryDispatched(mercure.EarliestLastEventID)
+
+		return nil
+	}
+
 	if t.historyLimit == 0 {
 		subscriber.HistoryDispatched(t.currentLastEventID())
 
