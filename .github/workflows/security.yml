@@ -32,8 +32,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # Mirrors the builder stage of webapp-base, so the scan below sees the same
-      # dependency set that consumers link into their FrankenPHP binary.
       - name: Build FrankenPHP with this transport
         run: |
           docker build -f - -o type=local,dest=binary . <<'EOF'
