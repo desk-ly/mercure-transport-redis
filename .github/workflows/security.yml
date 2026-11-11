@@ -41,6 +41,7 @@ jobs:
           COPY . /transport
 
           RUN CGO_ENABLED=1 \
+              GOTOOLCHAIN=auto \
               XCADDY_GO_BUILD_FLAGS="-ldflags='-w -s' -tags=nobadger,nomysql,nopgx" \
               CGO_CFLAGS=$(php-config --includes) \
               CGO_LDFLAGS="$(php-config --ldflags) $(php-config --libs)" \
