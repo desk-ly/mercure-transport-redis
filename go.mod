@@ -1,6 +1,6 @@
 module github.com/desk-ly/mercure-transport-redis
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/alicebob/miniredis/v2 v2.37.0
